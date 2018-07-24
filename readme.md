@@ -160,6 +160,11 @@ Restart nginx now.
 ```
 (gitai_webserver)~/gitai_webserver/workspace $ sudo /etc/init.d/nginx restart
 ```
+You can run command below and test if admin and media files are uploaded as well.
+```
+(gitai_webserver)~/gitai_webserver/workspace $ uwsgi --http :8000 --module mysite.wsgi
+```
+Visit localhost:8000/admin and localhost:8000/media to see if those are working correctly.
 
 ## nginx, uwsgi, and test.py
 Now let's connect nginx, uwsgi, and test.py, in terminal type:
@@ -223,6 +228,45 @@ gitai_webserver/workspace $ uwsgi --ini mysite.ini
 ```
 If this works fine, you'll be open up browser localhost:8000 or ip:8000 and see the Django app loaded on there.
 
+## Emperor Mode
+uWSGI can run in ‘emperor’ mode. where a watch is setup on directory of uWSGI config files. It will spawn instances (‘vassals’) for each one it finds.
+
+Whenever a config file is changed, the emperor will automatically restart the vassal.
+```
+# create a directory for the vassals
+sudo mkdir /etc/uwsgi
+sudo mkdir /etc/uwsgi/vassals
+# symlink from the default config directory to your config file
+sudo ln -s /home/gitai-hub/gitai_webserver/workspace/mysite.ini /etc/uwsgi/vassals/
+# run the emperor
+sudo uwsgi --emperor /etc/uwsgi/vassals --uid www-data --gid www-data
+```
+You can then go to localhost:8000 and view the Django app normally if it is successful.
+
+## Make uWSGI startup when the system boots
+The last step is to make it all happen automatically at system startup time.
+
+One way to do that is to add line below to rc.local file before the line “exit 0”.
+
+```
+/usr/local/bin/uwsgi --emperor /etc/uwsgi/vassals --uid www-data --gid www-data --daemonize /var/log/uwsgi-emperor.log
+```
+
+## Deploying Flask
+Flask is a popular Python web microframework.
+
+Save the following example as myflaskapp.py:
+
+```
+from flask import Flask
+
+app = Flask(__name__)
+
+@app.route('/')
+def index():
+    return "<span style='color:red'>I am app 1</span>"
+```
+
 
 ### GROUP
 You may also have to add your user to nginx’s group (which is probably www-data), or vice-versa, so that nginx can read and write to your socket properly.
@@ -266,6 +310,12 @@ uwsgi --socket :7000 --wsgi-file test.py
 
 # Django app
 ~/gitai_webserver/workspace $ uwsgi --socket mysite.sock --module mysite.wsgi --chmod-socket=666
+
+# Django app with stats
+~/gitai_webserver/workspace $ uwsgi --socket :7000 --stats :9000 --module mysite.wsgi --master --processes 8 --chmod-socket=666
+
+# then in another terminal, run this:
+$ uwsgi --connect-and-read 127.0.0.1:9000
 ```
 flask test
 ```
@@ -273,18 +323,20 @@ flask test
 ```
 
 # FAQ
-Question 1: I get this error when launching uwsgi socket:
+Question 1: 
+ - I get this error when launching uwsgi socket:
 ```
 $ uwsgi --socket :7000 --wsgi-file test.py 
 
 invalid request block size: 21573 (max 4096)...skip
 ```
  
-Answer 1: Adjust the parameters with this command:
+Answer 1: 
+ - Adjust the parameters with this command:
 ```
 uwsgi --socket :8000 --wsgi-file test.py --protocol=http
 ```
-Or listen to the server port 8000 from mysite_nginx.conf on your browser as localhost:8000 instead of port 7000 shown below:
+ - Or listen to the server port 8000 from mysite_nginx.conf on your browser as localhost:8000 instead of port 7000 shown below:
 ```
 server {
     # the port your site will be served on
@@ -295,48 +347,71 @@ server {
 }
 ```
 
-Question 2: I get error of disallowed hosts when launching uwsgi.
+Question 2: 
+ - I get error of disallowed hosts when launching uwsgi.
 
  
-Answer 2: Add "localhost" and your public ip in the "ALLOWED_HOSTS" in hello/hello/settings.py
+Answer 2: 
+ - Add "localhost" and your public ip in the "ALLOWED_HOSTS" in hello/hello/settings.py
 
-Question 3: I get error of when launching uwsgi .ini file.
+Question 3: 
+ - I get error of when launching uwsgi .ini file.
 ```
 ~/our-project/hello$ uwsgi --ini hello.ini
 
 Fatal Python error: Py_Initialize: Unable to get the locale encoding
 ModuleNotFoundError: No module named 'encodings'
-
 ```
 
  
-Answer 3: For Python-3 try removing virtual environment files. And resetting it up.
+Answer 3: 
+ - Make sure the path names are correct for socket and chdir shown below:
+ 
 
 ```
-rm -rf venv
-virtualenv -p /usr/bin/python3 venv/
-source venv/bin/activate
-pip install -r requirements.txt
+socket = /home/gitai-hub/gitai_webserver/workspace/mysite.sock 
+
+chdir = /home/gitai-hub/gitai_webserver/workspace
 ```
 
-Question 4: When I launch Nginx, it has error of "Bad Gateway".
+Question 4: 
+- When I launch Nginx, it has error of "Bad Gateway".
 
-Answer 4: Remove mysite.sock file in workspace folder. Start uWSGI first then NGINX. Other things to try is to remove the virtual environment, pip install Django, pip install mysqlclient
+Answer 4: 
+- Remove mysite.sock file in workspace folder. Start uWSGI first then NGINX. If error persists, check error log at folder with command where -f tag shows real time errors: 
+```
+/var/log/nginx $ tail -f error.log
+```
+- Make sure you have the mysite_nginx.conf upstream django desingation correct for the command you are running below:
+```
+In terminal
+ $ uwsgi --socket mysite.sock --module mysite.wsgi --chmod-socket=666
 
-Question 5: When I launch uWSGI and restart NGINX, it has error of "Connection Refused" at localhost:8000 or ip:8000.
+mysite_nginx.conf file
+upstream django {
+  server unix:///home/gitai-hub/gitai_webserver/workspace/mysite.sock; # for a file socket
+}
+ ```
+- Other things to try is to remove the virtual environment pip install Django, pip install mysqlclient.
 
-Answer 5: Check symbolic link in the folder /etc/nginx/sites-enabled/ and recreate connection (may have to delete old file there) with command:
+Question 5: 
+- When I launch uWSGI and restart NGINX, it has error of "Connection Refused" at localhost:8000 or ip:8000.
+
+Answer 5: 
+- Check symbolic link in the folder /etc/nginx/sites-enabled/ and recreate connection (may have to delete old file there) with command:
 ```
 sudo ln -s ~/path/to/your/mysite/mysite_nginx.conf /etc/nginx/sites-enabled/
 ```
 
-Question 6: I get error that port is already in use.
+Question 6: 
+- I get error that port is already in use.
 
-Answer 6: Run this command for that port 8000.
+Answer 6: 
+- Run this command for that port 8000.
 ```
 $ sudo fuser -k 8000/tcp
 ```
-Then check your mysite_nginx.conf file and then if test if you run sockeet or port commands. If you run port, then make sure this field is uncommented:
+- Then check your mysite_nginx.conf file and then if test if you run sockeet or port commands. If you run port, then make sure this field is uncommented:
 
 ```
 upstream django {
@@ -344,22 +419,23 @@ upstream django {
 }
 
 ```
-If you are testing with socket, then uncomment this line:
+- If you are testing with socket, then uncomment this line:
 ```
 upstream django {
     server unix:///home/gitai-hub/gitai_webserver/workspace/mysite.sock;
 }
  
 ```
-
-Question 7: I get a failed start error when I start Nginx below:
+Question 7: 
+- I get a failed start error when I start Nginx below:
 ```
 $ sudo /etc/init.d/nginx restart
 
 [....] Restarting nginx (via systemctl): nginx.serviceJob for nginx.service failed because the control process exited with error code. See "systemctl status nginx.service" and "journalctl -xe" for details.
  failed!
 ```
-Answer 7: Make sure anoter terminal running a server isn't running. Close that terminal/port.
+Answer 7: 
+- Make sure another terminal running a server isn't running. Close that terminal/port.
 
 
 
@@ -368,4 +444,4 @@ Answer 7: Make sure anoter terminal running a server isn't running. Close that t
 - [uWSGI Official Tutorial](https://uwsgi.readthedocs.io/en/latest/tutorials/Django_and_nginx.html#basic-nginx)
 - [Monik Quickstart with Ubuntu 16.04.XX](http://monik.in/a-quick-guide-to-getting-a-django-uwsgi-nginx-server-up-on-ubuntu-16-04-aws-ec2/)
 - [Error: Uwsgi invalid request block size](https://stackoverflow.com/questions/15878176/uwsgi-invalid-request-block-size)
-- [Error: No module 'encodings'](https://stackoverflow.com/questions/38132755/importerror-no-module-named-encodings)
+- [Error: No module 'encodings'](https://stackoverflow.com/questions/16272542/uwsgi-fails-with-no-module-named-encoding-error)
