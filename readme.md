@@ -183,51 +183,48 @@ Since Django project works inside virtual environment, we will now have UWSGI se
 ```
 (gitai_webserver)~/gitai_webserver $ deactivate
 ```
-Now run these commands to test if Django works on the web.
+Now run these commands to test if Django works on the web using socket.
 ```
 gitai_webserver/workspace $ sudo pip install uwsgi
-gitai_webserver/workspace $ uwsgi --http :8000 --home /home/gitai-hub/our-project/venv --chdir /home/gitai-hub/our-project/hello -w hello.wsgi
+gitai_webserver/workspace $ uwsgi --socket mysite.sock --module mysite.wsgi --chmod-socket=666
 ```
 Go to localhost:8000 and your public ip:8000 to see if the Django installation is successful.
 
 Now to save these settings in an initial configuration, we create a .ini file and then launch it.
 ```
-our-project/hello $ sudo mkdir /etc/uwsgi/sites
-our-project/hello $ sudo vim /etc/uwsgi/sites/hello.ini
+gitai_webserver/workspace $ sudo touch mysite.ini
+gitai_webserver/workspace $ sudo vim mysite.ini
 
 OR 
 
-our-project/hello $ sudo nano /etc/uwsgi/sites/hello.ini
+gitai_webserver/workspace $ sudo nano /etc/uwsgi/sites/hello.ini
 
 OR 
-
-our-project/hello $ sudo xdg-open /etc/uwsgi/sites/hello.ini
+gitai_webserver/workspace $ sudo xdg-open /etc/uwsgi/sites/hello.ini
 ```
-The hello.ini contents are:
+The mysite.ini contents are:
 ```
 [uwsgi]
- 
-chdir = /home/gitai-hub/our-project/hello #same as above
-home = /home/gitai-hub/our-project/venv #same as above
-module = hello.wsgi:application #same as above
- 
-master = true
-processes = 5 #more processes, more computing power
- 
-socket = /run/uwsgi/hello.sock #SOCKET_LOC
-chown-socket = ubuntu:www-data #user and user's group
-chmod-socket = 660
-vacuum = true #delete the socket after process ends
-harakiri = 30 #respawn the process if it takes more than 30 secs
+# if using this, uncomment in mysite_nginx.conf, the upstream django server unix socket line
+socket          = /home/gitai-hub/gitai_webserver/workspace/mysite.sock 
+# if using this, uncomment in mysite_nginx.conf, the upstream django server port line
+# socket = 127.0.0.1:7000 
+
+workers         = 3
+master          = true
+chmod-socket    = 666
+module          = mysite.wsgi
+chdir           = /home/gitai-hub/gitai_webserver/workspace
+
 ```
 Test if this works with command:
 ```
-our-project/hello $ uwsgi --ini /etc/uwsgi/sites/hello.ini
+gitai_webserver/workspace $ uwsgi --ini mysite.ini
 ```
-If this works fine, you’ll see a couple of lines and status that 5 or some number of processes have been spawned.
+If this works fine, you'll be open up browser localhost:8000 or ip:8000 and see the Django app loaded on there.
 
 
-GROUP
+### GROUP
 You may also have to add your user to nginx’s group (which is probably www-data), or vice-versa, so that nginx can read and write to your socket properly.
 To do that, go to:
 ```
@@ -285,9 +282,9 @@ invalid request block size: 21573 (max 4096)...skip
  
 Answer 1: Adjust the parameters with this command:
 ```
-uwsgi --socket :8052 --wsgi-file demo_wsgi.py --protocol=http
+uwsgi --socket :8000 --wsgi-file test.py --protocol=http
 ```
-Or listen to the server port 8000 in mysite_nginx.conf instead of port 7000 shown below:
+Or listen to the server port 8000 from mysite_nginx.conf on your browser as localhost:8000 instead of port 7000 shown below:
 ```
 server {
     # the port your site will be served on
