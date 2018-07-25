@@ -202,10 +202,10 @@ gitai_webserver/workspace $ sudo vim mysite.ini
 
 OR 
 
-gitai_webserver/workspace $ sudo nano /etc/uwsgi/sites/hello.ini
+gitai_webserver/workspace $ sudo nano mysite.ini
 
 OR 
-gitai_webserver/workspace $ sudo xdg-open /etc/uwsgi/sites/hello.ini
+gitai_webserver/workspace $ sudo xdg-open mysite.ini
 ```
 The mysite.ini contents are:
 ```
@@ -266,7 +266,10 @@ app = Flask(__name__)
 def index():
     return "<span style='color:red'>I am app 1</span>"
 ```
-
+Then in the terminal, run this commmand and go to localhost:8000 to see if output is successful:
+```
+~/gitai_webserver/workspace $ uwsgi --socket mysite.sock --wsgi-file myflaskapp.py --callable app --processes 4 --threads 2 --chmod-socket=666
+```
 
 ### GROUP
 You may also have to add your user to nginx’s group (which is probably www-data), or vice-versa, so that nginx can read and write to your socket properly.
@@ -319,7 +322,7 @@ $ uwsgi --connect-and-read 127.0.0.1:9000
 ```
 flask test
 ```
-~/gitai_webserver/workspace $ uwsgi --socket mysite.sock --wsgi-file myflaskapp.py --callable app --processes 4 --threads 2
+~/gitai_webserver/workspace $ uwsgi --socket mysite.sock --wsgi-file myflaskapp.py --callable app --processes 4 --threads 2 --chmod-socket=666
 ```
 
 # FAQ
@@ -352,12 +355,12 @@ Question 2:
 
  
 Answer 2: 
- - Add "localhost" and your public ip in the "ALLOWED_HOSTS" in hello/hello/settings.py
+ - Add "localhost" and your public ip in the "ALLOWED_HOSTS" in ~/gitai_webserver/workspace/mysite/settings.py
 
 Question 3: 
  - I get error of when launching uwsgi .ini file.
 ```
-~/our-project/hello$ uwsgi --ini hello.ini
+~/gitai_webserver/workspace$ uwsgi --ini mysite.ini
 
 Fatal Python error: Py_Initialize: Unable to get the locale encoding
 ModuleNotFoundError: No module named 'encodings'
