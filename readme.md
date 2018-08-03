@@ -262,7 +262,6 @@ Restart=always
 
 [Install]
 WantedBy=multi-user.target
-
 ```
 Check if systemd are working:
 
@@ -476,14 +475,12 @@ $ sudo fuser -k 8000/tcp
 upstream django {
     server 127.0.0.1:7000; # for a web port socket (we'll use this first)
 }
-
 ```
 - If you are testing with socket, then uncomment this line:
 ```
 upstream django {
     server unix:///home/gitai-hub/gitai_webserver/workspace/mysite.sock;
 }
- 
 ```
 Question 7: 
 - I get a failed start error when I start Nginx below:
