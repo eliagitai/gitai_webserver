@@ -1,0 +1,28 @@
+[Unit]
+Description=uWSGI instance to serve myproject
+After=network.target
+
+[Service]
+# WorkingDirectory  = /home/gitai-hub/gitai-hub
+WorkingDirectory    = /home/gitai-hub/gitai_webserver/workspace
+
+#User = gitai-eye
+User = gitai-hub
+
+#Group = www-dat
+#Group = www-data
+Group = gitai-hub
+
+Environment = "PATH=/home/gitai-hub/.pyenv/versions/3.6.2/bin:/bin/sh:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+#Environment = "PATH=/home/gitai-hub/gitai_webserver/bin"
+#Environment = "PATH=/home/gitai-hub/gitai_webserver/bin:/bin/sh:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+
+ExecStart = /home/gitai-hub/.pyenv/versions/3.6.2/bin/uwsgi --ini mysite.ini --chmod=777
+#ExecStart = /home/gitai-hub/gitai_webserver/workspace --ini mysite.ini --chmod=777
+#ExecStart = /home/gitai-hub/.pyenv/shims/uwsgi --ini mysite.ini --chmod=777
+
+Restart = always
+
+[Install]
+WantedBy = multi-user.target
+

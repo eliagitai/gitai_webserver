@@ -243,14 +243,63 @@ sudo uwsgi --emperor /etc/uwsgi/vassals --uid www-data --gid www-data
 ```
 You can then go to localhost:8000 and view the Django app normally if it is successful.
 
-## Make uWSGI startup when the system boots
-The last step is to make it all happen automatically at system startup time.
+## Auto boot Django when system restarts or crashes
+Edit this file gitai-hub.service file in /etc/systemd/system adding line:
+```
+$ sudo vi /etc/systemd/system/gitai-hub.service
 
-One way to do that is to add line below to rc.local file before the line “exit 0”.
+[Unit]
+Description=uWSGI instance to serve myproject
+After=network.target
+
+[Service]
+WorkingDirectory=/home/gitai-hub/gitai-hub
+User=gitai-eye
+Group=www-data
+Environment="PATH=/home/gitai-hub/.pyenv/versions/3.6.2/bin:/bin/sh:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+ExecStart=/home/gitai-hub/.pyenv/versions/3.6.2/bin/uwsgi --ini uwsgi.ini
+
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+
+
+...
+```
+Check if systemd are working:
+
 
 ```
-/usr/local/bin/uwsgi --emperor /etc/uwsgi/vassals --uid www-data --gid www-data --daemonize /var/log/uwsgi-emperor.log
+$ sudo systemctl daemon-reload
+$ sudo systemctl stop gitai-hub
+$ sudo systemctl start gitai-hub
+$ sudo systemctl status gitai-hub
 ```
+If working correctly when checking status, you will see a line "Active: active (running)" below:
+```
+● gitai-hub.service - uWSGI instance to serve myproject
+   Loaded: loaded (/etc/systemd/system/gitai-hub.service; enabled; vendor preset: enabled)
+   Active: active (running) since Fri 2018-08-03 11:24:16 JST; 7s ago
+ Main PID: 4397 (uwsgi)
+    .
+    .
+    .
+ ```
+ To check if auto boot is working properly from crash or restart, terminate the active uWSGI instance using the Main PID: #### number from the status command or do a system reboot. You then reboot and check status again to see if new uWSGI instance with Main PID is active (running):
+ ```
+$ sudo kill -9 [Main PID number or 4397 in this example]
+
+OR 
+
+$ sudo reboot
+$ sudo systemctl status gitai-hub
+
+● gitai-hub.service - uWSGI instance to serve myproject
+   Loaded: loaded (/etc/systemd/system/gitai-hub.service; enabled; vendor preset: enabled)
+   Active: active (running) since Fri 2018-08-03 11:25:23 JST; 7s ago
+ Main PID: 2030 (uwsgi)
+ ```
 
 ## Deploying Flask
 Flask is a popular Python web microframework.
@@ -439,6 +488,40 @@ $ sudo /etc/init.d/nginx restart
 ```
 Answer 7: 
 - Make sure another terminal running a server isn't running. Close that terminal/port.
+
+Question 8:
+- I get a permission error of "Failed at step EXEC spawning" when I check the status of the systemctl at /etc/systemd/system/gitai-hub.service.
+
+Answer 8:
+- Check the gitai-hub.service and ensure the configurations, especially Environment and ExecStart lines have the correct pyenv paths below:
+```
+Environment="PATH=/home/gitai-hub/.pyenv/versions/3.6.2/bin:/bin/sh:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+
+ExecStart=/home/gitai-hub/.pyenv/versions/3.6.2/bin/uwsgi --ini mysite.ini --chmod=777
+```
+
+
+Question 9:
+- When I load the public ip, I get nginx but I want to see Django. Django loads when I go to the ip:8000 though.
+
+Answer 9:
+- To load Django on public ip without a port, in the mysite_nginx.conf file, edit the listening line from 8000 to 80 as shown below:
+
+```
+# configuration of the server
+server {
+    # the port your site will be served on
+    listen      80;
+    .
+    .
+    .
+}
+```
+- Restart nginx with command and then check the public ip to see if Django is loaded successfully.
+```
+$ sudo /etc/init.d/nginx restart
+```
+
 
 
 
