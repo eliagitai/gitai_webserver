@@ -220,7 +220,6 @@ master          = true
 chmod-socket    = 666
 module          = mysite.wsgi
 chdir           = /home/gitai-hub/gitai_webserver/workspace
-
 ```
 Test if this works with command:
 ```
@@ -244,7 +243,7 @@ sudo uwsgi --emperor /etc/uwsgi/vassals --uid www-data --gid www-data
 You can then go to localhost:8000 and view the Django app normally if it is successful.
 
 ## Auto boot Django when system restarts or crashes
-Edit this file gitai-hub.service file in /etc/systemd/system adding line:
+Edit file gitai-hub.service in /etc/systemd/system by adding line "Restart =always:
 ```
 $ sudo vi /etc/systemd/system/gitai-hub.service
 
@@ -264,8 +263,6 @@ Restart=always
 [Install]
 WantedBy=multi-user.target
 
-
-...
 ```
 Check if systemd are working:
 
@@ -372,6 +369,16 @@ $ uwsgi --connect-and-read 127.0.0.1:9000
 flask test
 ```
 ~/gitai_webserver/workspace $ uwsgi --socket mysite.sock --wsgi-file myflaskapp.py --callable app --processes 4 --threads 2 --chmod-socket=666
+```
+Systemd and auto boot tests
+```
+$ sudo systemctl daemon-reload
+$ sudo systemctl stop gitai-hub
+$ sudo systemctl start gitai-hub
+$ sudo systemctl status gitai-hub
+$ sudo systemctl enable gitai-hub
+$ sudo reboot OR sudo kill -9 [Main PID #]
+$ sudo systemctl status gitai-hub
 ```
 
 # FAQ
