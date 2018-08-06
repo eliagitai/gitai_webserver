@@ -252,11 +252,12 @@ Description=uWSGI instance to serve myproject
 After=network.target
 
 [Service]
-WorkingDirectory=/home/gitai-hub/gitai-hub
-User=gitai-eye
+WorkingDirectory=/home/gitai-hub/gitai_webserver/workspace
+User=gitai-hub
 Group=www-data
 Environment="PATH=/home/gitai-hub/.pyenv/versions/3.6.2/bin:/bin/sh:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
-ExecStart=/home/gitai-hub/.pyenv/versions/3.6.2/bin/uwsgi --ini uwsgi.ini
+ExecStart = /home/gitai-hub/.pyenv/versions/3.6.2/bin/uwsgi --ini mysite.ini --chmod=777
+
 
 Restart=always
 
@@ -351,7 +352,7 @@ port tests
 socket tests
 ```
 # test.py with socket port 8000
-uwsgi --socket :7000 --wsgi-file test.py
+~/gitai_webserver/workspace $ uwsgi --socket :7000 --wsgi-file test.py
 
 # test.py with mysite.sock
 ~/gitai_webserver/workspace $ uwsgi --socket mysite.sock --wsgi-file test.py --chmod-socket=666
@@ -359,15 +360,20 @@ uwsgi --socket :7000 --wsgi-file test.py
 # Django app
 ~/gitai_webserver/workspace $ uwsgi --socket mysite.sock --module mysite.wsgi --chmod-socket=666
 
-# Django app with stats
+# Django app with stats and port
 ~/gitai_webserver/workspace $ uwsgi --socket :7000 --stats :9000 --module mysite.wsgi --master --processes 8 --chmod-socket=666
 
-# then in another terminal, run this:
+OR 
+
+# Django app with stats and socket
+~/gitai_webserver/workspace $ uwsgi --socket mysite.sock --stats :9000 --module mysite.wsgi --master --processes 8 --chmod-socket=666
+
+# then with port or socket in another terminal, run this:
 $ uwsgi --connect-and-read 127.0.0.1:9000
 ```
 flask test
 ```
-~/gitai_webserver/workspace $ uwsgi --socket mysite.sock --wsgi-file myflaskapp.py --callable app --processes 4 --threads 2 --chmod-socket=666
+~/gitai_webserver/workspace $ uwsgi --socket mysite.sock --wsgi-file myflaskapp.py --callable app --processes 4 --threads 2 --chmod-socket=666 --stats :9000
 ```
 Systemd and auto boot tests
 ```
