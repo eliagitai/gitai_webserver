@@ -525,8 +525,20 @@ server {
 ```
 $ sudo /etc/init.d/nginx restart
 ```
+Question 10:
+- I get this error when restarting nginx.
 
+```
+$ sudo /etc/init.d/nginx restart
+[....] Starting nginx (via systemctl): nginx.serviceJob for nginx.service failed because the control process exited with error code. See "systemctl status nginx.service" and "journalctl -xe" for details.
+ failed!
+```
 
+Answer 10:
+- To see the exact error, run this command then debug from there.
+```
+$ sudo nginx -t -c /etc/nginx/nginx.conf
+```
 
 
 
@@ -535,3 +547,4 @@ $ sudo /etc/init.d/nginx restart
 - [Monik Quickstart with Ubuntu 16.04.XX](http://monik.in/a-quick-guide-to-getting-a-django-uwsgi-nginx-server-up-on-ubuntu-16-04-aws-ec2/)
 - [Error: Uwsgi invalid request block size](https://stackoverflow.com/questions/15878176/uwsgi-invalid-request-block-size)
 - [Error: No module 'encodings'](https://stackoverflow.com/questions/16272542/uwsgi-fails-with-no-module-named-encoding-error)
+- [Error: Can't start nginx](https://www.digitalocean.com/community/questions/can-t-start-nginx-job-for-nginx-service-failed)
