@@ -24,26 +24,25 @@ $ cd ~
 ```
 Now in virtual environment, install the project.
 ```
-(gitai_webserver)~/gitai_webserver $ django-admin.py startproject mysite
-(gitai_webserver)~/gitai_webserver $ mv /home/gitai-hub/webserver/mysite /home/gitai-hub/gitai_webserver/workspace
+(gitai_webserver)~/gitai_webserver $ django-admin.py startproject gitai_site
+(gitai_webserver)~/gitai_webserver $ mv /home/gitai-hub/webserver/gitai_site /home/gitai-hub/gitai_webserver/workspace
 ```
 If you have an existing project, add this line in terminal:
 ```
 (gitai_webserver)~/gitai_webserver $ pip install -r requirements.txt && cd workspace
 ```
-In ~/gitai_webserver/workspace/mysite/settings.py, add allowed hosts and convert database from SQLite to MySQL MariaDB with these edits.
+In ~/gitai_webserver/workspace/gitai_site/settings.py, add allowed hosts and convert database from SQLite to MySQL MariaDB with these edits.
 ```
 ALLOWED_HOSTS = ['192.168.99.63'(your IP), 'localhost']
 
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'mysite',
-        'USER': 'mysiteuser',
-        'PASSWORD': 'password',
+        'NAME': 'gitai_hub',
+        'USER': 'gitai',
+        'PASSWORD': 'gitai',
         'HOST': 'localhost',
         'PORT': '',
-    }
 }
 ```
 ## UWSGI (Universal Web Server Gateway Interface)
@@ -99,21 +98,21 @@ You will need the ```uwsgi_params``` file, which is available in the nginx direc
 
 Copy it into your project directory.
 
-Now create a file called mysite_nginx.conf, and put this in it:
+Now create a file called gitai_site_nginx.conf, and put this in it:
 
 ```
-# mysite_nginx.conf
+# gitai_site_nginx.conf
 
 # the upstream component nginx needs to connect to
 upstream django {
-    server unix:///home/gitai-hub/gitai_webserver/workspace/mysite.sock; # for a file socket
-    # server 127.0.0.1:7000; # for a web port socket (we'll use this first)
+    server unix:///home/gitai-hub/gitai_webserver/workspace/gitai_site.sock; # for a file socket
+    #server 127.0.0.1:7000; # for a web port socket (we'll use this first)
 }
 
 # configuration of the server
 server {
     # the port your site will be served on
-    listen      8000;
+    listen      80;
     # the domain name it will serve for
     server_name 192.168.99.63; # substitute your machine's IP address or FQDN
     charset     utf-8;
@@ -124,7 +123,7 @@ server {
     # Django media
     location /media  {
         autoindex on;
-        alias /home/gitai-hub/gitai_webserver/workspace/media/;  # your Django project's media files - amend as required
+        alias /home/gitai-hub/gitai_webserver/workspace/media;  # your Django project's media files - amend as required
     }
 
     location /static {
@@ -143,10 +142,10 @@ This conf file tells nginx to serve up media and static files from the filesyste
 
 Symlink to this file from /etc/nginx/sites-enabled so nginx can see it:
 ```
-sudo ln -s ~/home/gitai-hub/gitai_webserver/workspace/mysite_nginx.conf /etc/nginx/sites-enabled/
+sudo ln -s ~/home/gitai-hub/gitai_webserver/workspace/gitai_site_nginx.conf /etc/nginx/sites-enabled/
 ```
 ### Deploying static files
-Before running nginx, you have to collect all Django static files in the static folder. First of all you have to edit mysite/settings.py adding:
+Before running nginx, you have to collect all Django static files in the static folder. First of all you have to edit gitai_site/settings.py adding:
 ```
 STATIC_ROOT = os.path.join(BASE_DIR, "static/")
 ```
@@ -162,14 +161,14 @@ Restart nginx now.
 ```
 You can run command below and test if admin and media files are uploaded as well.
 ```
-(gitai_webserver)~/gitai_webserver/workspace $ uwsgi --http :8000 --module mysite.wsgi
+(gitai_webserver)~/gitai_webserver/workspace $ uwsgi --http :8000 --module gitai_site.wsgi
 ```
 Visit localhost:8000/admin and localhost:8000/media to see if those are working correctly.
 
 ## nginx, uwsgi, and test.py
 Now let's connect nginx, uwsgi, and test.py, in terminal type:
 ```
-(gitai_webserver)~/gitai_webserver/workspace $ uwsgi --socket mysite.sock --wsgi-file test.py --chmod-socket=666
+(gitai_webserver)~/gitai_webserver/workspace $ uwsgi --socket gitai_site.sock --wsgi-file test.py --chmod-socket=666
 ```
 In another terminal, restart nginx with command:
 ```
@@ -180,7 +179,7 @@ Now check localhost to see the Nginx page is working. Then go to localhost:8000 
 Repeat process for loading Django app, make sure you restart nginx after running the command below too.
 
 ```
-~/gitai_webserver/workspace $ uwsgi --socket mysite.sock --module mysite.wsgi --chmod-socket=666
+(gitai_webserver)~/gitai_webserver/workspace $ uwsgi --socket gitai_site.sock --module gitai_site.wsgi --chmod-socket=666
 ```
 
 ## Install uWSGI system wide
@@ -191,39 +190,39 @@ Since Django project works inside virtual environment, we will now have UWSGI se
 Now run these commands to test if Django works on the web using socket.
 ```
 gitai_webserver/workspace $ sudo pip install uwsgi
-gitai_webserver/workspace $ uwsgi --socket mysite.sock --module mysite.wsgi --chmod-socket=666
+gitai_webserver/workspace $ uwsgi --socket gitai_site.sock --module gitai_site.wsgi --chmod-socket=666
 ```
 Go to localhost:8000 and your public ip:8000 to see if the Django installation is successful.
 
 Now to save these settings in an initial configuration, we create a .ini file and then launch it.
 ```
-gitai_webserver/workspace $ sudo touch mysite.ini
-gitai_webserver/workspace $ sudo vim mysite.ini
+gitai_webserver/workspace $ sudo touch gitai_site.ini
+gitai_webserver/workspace $ sudo vim gitai_site.ini
 
 OR 
 
-gitai_webserver/workspace $ sudo nano mysite.ini
+gitai_webserver/workspace $ sudo nano gitai_site.ini
 
 OR 
-gitai_webserver/workspace $ sudo xdg-open mysite.ini
+gitai_webserver/workspace $ sudo xdg-open gitai_site.ini
 ```
-The mysite.ini contents are:
+The gitai_site.ini contents are:
 ```
 [uwsgi]
-# if using this, uncomment in mysite_nginx.conf, the upstream django server unix socket line
-socket          = /home/gitai-hub/gitai_webserver/workspace/mysite.sock 
-# if using this, uncomment in mysite_nginx.conf, the upstream django server port line
+# if using this, uncomment in gitai_site_nginx.conf, the upstream django server unix socket line
+socket          = /home/gitai-hub/gitai_webserver/workspace/gitai_site.sock 
+# if using this, uncomment in gitai_site_nginx.conf, the upstream django server port line
 # socket = 127.0.0.1:7000 
 
 workers         = 3
 master          = true
 chmod-socket    = 666
-module          = mysite.wsgi
+module          = gitai_site.wsgi
 chdir           = /home/gitai-hub/gitai_webserver/workspace
 ```
 Test if this works with command:
 ```
-gitai_webserver/workspace $ uwsgi --ini mysite.ini
+gitai_webserver/workspace $ uwsgi --ini gitai_site.ini
 ```
 If this works fine, you'll be open up browser localhost:8000 or ip:8000 and see the Django app loaded on there.
 
@@ -236,14 +235,14 @@ Whenever a config file is changed, the emperor will automatically restart the va
 sudo mkdir /etc/uwsgi
 sudo mkdir /etc/uwsgi/vassals
 # symlink from the default config directory to your config file
-sudo ln -s /home/gitai-hub/gitai_webserver/workspace/mysite.ini /etc/uwsgi/vassals/
+sudo ln -s /home/gitai-hub/gitai_webserver/workspace/gitai_site.ini /etc/uwsgi/vassals/
 # run the emperor
 sudo uwsgi --emperor /etc/uwsgi/vassals --uid www-data --gid www-data
 ```
 You can then go to localhost:8000 and view the Django app normally if it is successful.
 
 ## Auto boot Django when system restarts or crashes
-Edit file gitai-hub.service in /etc/systemd/system by adding line "Restart =always:
+Edit file gitai-hub.service in /etc/systemd/system by adding line "Restart=always:
 ```
 $ sudo vi /etc/systemd/system/gitai-hub.service
 
@@ -256,7 +255,7 @@ WorkingDirectory=/home/gitai-hub/gitai_webserver/workspace
 User=gitai-hub
 Group=www-data
 Environment="PATH=/home/gitai-hub/.pyenv/versions/3.6.2/bin:/bin/sh:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
-ExecStart = /home/gitai-hub/.pyenv/versions/3.6.2/bin/uwsgi --ini mysite.ini --chmod=777
+ExecStart = /home/gitai-hub/.pyenv/versions/3.6.2/bin/uwsgi --ini gitai_site.ini --chmod=777
 
 
 Restart=always
@@ -314,7 +313,7 @@ def index():
 ```
 Then in the terminal, run this commmand and go to localhost:8000 to see if output is successful:
 ```
-~/gitai_webserver/workspace $ uwsgi --socket mysite.sock --wsgi-file myflaskapp.py --callable app --processes 4 --threads 2 --chmod-socket=666
+~/gitai_webserver/workspace $ uwsgi --socket gitai_site.sock --wsgi-file myflaskapp.py --callable app --processes 4 --threads 2 --chmod-socket=666
 ```
 
 ### GROUP
@@ -346,7 +345,7 @@ port tests
 ~/gitai_webserver/workspace $ uwsgi --http :8000 --wsgi-file test.py
 
 # Django app test
-~/gitai_webserver/workspace $ uwsgi --http :8000 --module mysite.wsgi
+~/gitai_webserver/workspace $ uwsgi --http :8000 --module gitai_site.wsgi
 ```
 
 socket tests
@@ -354,26 +353,31 @@ socket tests
 # test.py with socket port 8000
 ~/gitai_webserver/workspace $ uwsgi --socket :7000 --wsgi-file test.py
 
-# test.py with mysite.sock
-~/gitai_webserver/workspace $ uwsgi --socket mysite.sock --wsgi-file test.py --chmod-socket=666
+# test.py with gitai_site.sock
+~/gitai_webserver/workspace $ uwsgi --socket gitai_site.sock --wsgi-file test.py --chmod-socket=666
 
 # Django app
-~/gitai_webserver/workspace $ uwsgi --socket mysite.sock --module mysite.wsgi --chmod-socket=666
+~/gitai_webserver/workspace $ uwsgi --socket gitai_site.sock --module gitai_site.wsgi --chmod-socket=666
 
 # Django app with stats and port
-~/gitai_webserver/workspace $ uwsgi --socket :7000 --stats :9000 --module mysite.wsgi --master --processes 8 --chmod-socket=666
+~/gitai_webserver/workspace $ uwsgi --socket :7000 --stats :9000 --module gitai_site.wsgi --master --processes 8 --chmod-socket=666
 
 OR 
 
 # Django app with stats and socket
-~/gitai_webserver/workspace $ uwsgi --socket mysite.sock --stats :9000 --module mysite.wsgi --master --processes 8 --chmod-socket=666
+~/gitai_webserver/workspace $ uwsgi --socket gitai_site.sock --stats :9000 --module gitai_site.wsgi --master --processes 8 --chmod-socket=666
 
 # then with port or socket in another terminal, run this:
 $ uwsgi --connect-and-read 127.0.0.1:9000
 ```
+ini file
+```
+$ uwsgi --ini gitai_site.ini # the --ini option is used to specify a file
+```
+
 flask test
 ```
-~/gitai_webserver/workspace $ uwsgi --socket mysite.sock --wsgi-file myflaskapp.py --callable app --processes 4 --threads 2 --chmod-socket=666 --stats :9000
+~/gitai_webserver/workspace $ uwsgi --socket gitai_site.sock --wsgi-file gitai_flaskapp.py --callable app --processes 4 --threads 2 --chmod-socket=666 --stats :9000
 ```
 Systemd and auto boot tests
 ```
@@ -400,7 +404,7 @@ Answer 1:
 ```
 uwsgi --socket :8000 --wsgi-file test.py --protocol=http
 ```
- - Or listen to the server port 8000 from mysite_nginx.conf on your browser as localhost:8000 instead of port 7000 shown below:
+ - Or listen to the server port 8000 from gitai_site_nginx.conf on your browser as localhost:8000 instead of port 7000 shown below:
 ```
 server {
     # the port your site will be served on
@@ -416,12 +420,12 @@ Question 2:
 
  
 Answer 2: 
- - Add "localhost" and your public ip in the "ALLOWED_HOSTS" in ~/gitai_webserver/workspace/mysite/settings.py
+ - Add "localhost" and your public ip in the "ALLOWED_HOSTS" in ~/gitai_webserver/workspace/gitai_site/settings.py
 
 Question 3: 
  - I get error of when launching uwsgi .ini file.
 ```
-~/gitai_webserver/workspace$ uwsgi --ini mysite.ini
+~/gitai_webserver/workspace$ uwsgi --ini gitai_site.ini
 
 Fatal Python error: Py_Initialize: Unable to get the locale encoding
 ModuleNotFoundError: No module named 'encodings'
@@ -433,7 +437,7 @@ Answer 3:
  
 
 ```
-socket = /home/gitai-hub/gitai_webserver/workspace/mysite.sock 
+socket = /home/gitai-hub/gitai_webserver/workspace/gitai_site.sock 
 
 chdir = /home/gitai-hub/gitai_webserver/workspace
 ```
@@ -442,18 +446,18 @@ Question 4:
 - When I launch Nginx, it has error of "Bad Gateway".
 
 Answer 4: 
-- Remove mysite.sock file in workspace folder. Start uWSGI first then NGINX. If error persists, check error log at folder with command where -f tag shows real time errors: 
+- Remove gitai_site.sock file in workspace folder. Start uWSGI first then NGINX. If error persists, check error log at folder with command where -f tag shows real time errors: 
 ```
 /var/log/nginx $ tail -f error.log
 ```
-- Make sure you have the mysite_nginx.conf upstream django desingation correct for the command you are running below:
+- Make sure you have the gitai_site_nginx.conf upstream django desingation correct for the command you are running below:
 ```
 In terminal
- $ uwsgi --socket mysite.sock --module mysite.wsgi --chmod-socket=666
+ $ uwsgi --socket gitai_site.sock --module gitai_site.wsgi --chmod-socket=666
 
-mysite_nginx.conf file
+gitai_site_nginx.conf file
 upstream django {
-  server unix:///home/gitai-hub/gitai_webserver/workspace/mysite.sock; # for a file socket
+  server unix:///home/gitai-hub/gitai_webserver/workspace/gitai_site.sock; # for a file socket
 }
  ```
 - Other things to try is to remove the virtual environment pip install Django, pip install mysqlclient.
@@ -464,7 +468,7 @@ Question 5:
 Answer 5: 
 - Check symbolic link in the folder /etc/nginx/sites-enabled/ and recreate connection (may have to delete old file there) with command:
 ```
-sudo ln -s ~/path/to/your/mysite/mysite_nginx.conf /etc/nginx/sites-enabled/
+sudo ln -s ~/path/to/your/gitai_site/gitai_site_nginx.conf /etc/nginx/sites-enabled/
 ```
 
 Question 6: 
@@ -475,7 +479,7 @@ Answer 6:
 ```
 $ sudo fuser -k 8000/tcp
 ```
-- Then check your mysite_nginx.conf file and then if test if you run sockeet or port commands. If you run port, then make sure this field is uncommented:
+- Then check your gitai_site_nginx.conf file and then if test if you run sockeet or port commands. If you run port, then make sure this field is uncommented:
 
 ```
 upstream django {
@@ -485,7 +489,7 @@ upstream django {
 - If you are testing with socket, then uncomment this line:
 ```
 upstream django {
-    server unix:///home/gitai-hub/gitai_webserver/workspace/mysite.sock;
+    server unix:///home/gitai-hub/gitai_webserver/workspace/gitai_site.sock;
 }
 ```
 Question 7: 
@@ -507,7 +511,7 @@ Answer 8:
 ```
 Environment="PATH=/home/gitai-hub/.pyenv/versions/3.6.2/bin:/bin/sh:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
 
-ExecStart=/home/gitai-hub/.pyenv/versions/3.6.2/bin/uwsgi --ini mysite.ini --chmod=777
+ExecStart=/home/gitai-hub/.pyenv/versions/3.6.2/bin/uwsgi --ini gitai_site.ini --chmod=777
 ```
 
 
@@ -515,7 +519,7 @@ Question 9:
 - When I load the public ip, I get nginx but I want to see Django. Django loads when I go to the ip:8000 though.
 
 Answer 9:
-- To load Django on public ip without a port, in the mysite_nginx.conf file, edit the listening line from 8000 to 80 as shown below:
+- To load Django on public ip without a port, in the gitai_site_nginx.conf file, edit the listening line from 8000 to 80 as shown below:
 
 ```
 # configuration of the server
@@ -545,7 +549,6 @@ Answer 10:
 ```
 $ sudo nginx -t -c /etc/nginx/nginx.conf
 ```
-
 
 
 # References
