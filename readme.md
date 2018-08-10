@@ -502,6 +502,10 @@ $ sudo /etc/init.d/nginx restart
 ```
 Answer 7: 
 - Make sure another terminal running a server isn't running. Close that terminal/port.
+- To see the exact error, run this command then debug from there.
+```
+$ sudo nginx -t -c /etc/nginx/nginx.conf
+```
 
 Question 8:
 - I get a permission error of "Failed at step EXEC spawning" when I check the status of the systemctl at /etc/systemd/system/gitai-hub.service.
@@ -535,20 +539,7 @@ server {
 ```
 $ sudo /etc/init.d/nginx restart
 ```
-Question 10:
-- I get this error when restarting nginx.
 
-```
-$ sudo /etc/init.d/nginx restart
-[....] Starting nginx (via systemctl): nginx.serviceJob for nginx.service failed because the control process exited with error code. See "systemctl status nginx.service" and "journalctl -xe" for details.
- failed!
-```
-
-Answer 10:
-- To see the exact error, run this command then debug from there.
-```
-$ sudo nginx -t -c /etc/nginx/nginx.conf
-```
 
 
 # References
