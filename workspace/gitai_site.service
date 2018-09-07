@@ -17,7 +17,7 @@ Environment = "PATH=/home/gitai-hub/.pyenv/versions/3.6.2/bin:/bin/sh:/usr/local
 #Environment = "PATH=/home/gitai-hub/gitai_webserver/bin"
 #Environment = "PATH=/home/gitai-hub/gitai_webserver/bin:/bin/sh:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
 
-ExecStart = /home/gitai-hub/.pyenv/versions/3.6.2/bin/uwsgi --ini mysite.ini --chmod=777
+ExecStart = /home/gitai-hub/.pyenv/versions/3.6.2/bin/uwsgi --ini gitai_site.ini --chmod=777
 #ExecStart = /home/gitai-hub/gitai_webserver/workspace --ini mysite.ini --chmod=777
 #ExecStart = /home/gitai-hub/.pyenv/shims/uwsgi --ini mysite.ini --chmod=777
 
